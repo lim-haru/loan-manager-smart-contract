@@ -17,7 +17,7 @@ contract LoanManager {
     _;
   }
   
-  enum LoanStatus {created, active, paid, expired}
+  enum LoanStatus {created, active, paid, expired, canceled }
 
   struct Loan {
     address payable borrower;
@@ -37,6 +37,7 @@ contract LoanManager {
   event LoanFunded(uint loanId, address indexed lenders, uint startDate, uint endDate);
   event LoanRepaid(uint loanId, uint amountPaid);
   event PenaltyRateChanged(uint newRate);
+  event LoanCanceled(uint loanId);
   
   function borrow(uint _amount, uint16 _interestRate, uint16 _duration) external {
     require(_amount > 0, "Loan amount must be greater than 0");
@@ -61,7 +62,7 @@ contract LoanManager {
     Loan storage loan = loans[_loanId];
 
     require(loan.status == LoanStatus.created, "Loan is not in Created state");
-    require(msg.value >= loan.amount, "Incorrect amount");
+    require(msg.value == loan.amount, "Incorrect amount");
 
     loan.lender = payable(msg.sender);
     loan.startDate = block.timestamp;
@@ -91,6 +92,16 @@ contract LoanManager {
     loan.lender.transfer(totalAmountDue);
     loan.status = LoanStatus.paid;
     emit LoanRepaid(_loanId, totalAmountDue);
+  }
+
+  function cancelLoan(uint _loanId) public {
+    Loan storage loan = loans[_loanId];
+
+    require(msg.sender == loan.borrower, "Only borrower can cancel the loan");
+    require(loan.status == LoanStatus.created, "Loan can only be canceled if it is in the created state");
+
+    loan.status = LoanStatus.canceled;
+    emit LoanCanceled(_loanId);
   }
 
   function setDailyPenaltyRate(uint _newRate) external onlyOwner {
