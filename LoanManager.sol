@@ -17,7 +17,7 @@ contract LoanManager {
     _;
   }
   
-  enum LoanStatus {created, active, paid, expired, canceled }
+  enum LoanStatus { created, active, paid, canceled }
 
   struct Loan {
     address payable borrower;
@@ -107,5 +107,9 @@ contract LoanManager {
   function setDailyPenaltyRate(uint _newRate) external onlyOwner {
     dailyPenaltyRate = _newRate;
     emit PenaltyRateChanged(_newRate);
+  }
+
+  function getLoanDetails(uint _loanId) external view returns (Loan memory) {
+    return loans[_loanId];
   }
 }
