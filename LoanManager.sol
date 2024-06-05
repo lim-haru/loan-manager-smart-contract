@@ -17,7 +17,7 @@ contract LoanManager {
     _;
   }
   
-  enum LoanStatus { created, active, paid, canceled }
+  enum LoanStatus { Created, Active, Paid, Canceled }
 
   struct Loan {
     address payable borrower;
@@ -34,7 +34,7 @@ contract LoanManager {
   mapping(uint => Loan) public loans;
 
   event LoanCreated(uint loanId, address indexed borrower, uint amount, uint16 interestRate, uint16 duration);
-  event LoanFunded(uint loanId, address indexed lenders, uint startDate, uint endDate);
+  event LoanFunded(uint loanId, address indexed lender, uint startDate, uint endDate);
   event LoanRepaid(uint loanId, uint amountPaid);
   event PenaltyRateChanged(uint newRate);
   event LoanCanceled(uint loanId);
@@ -52,7 +52,7 @@ contract LoanManager {
       duration: _duration,
       startDate: 0,
       endDate: 0,
-      status: LoanStatus.created
+      status: LoanStatus.Created
     });
     
     emit LoanCreated(loanCount, msg.sender,_amount, _interestRate, _duration);
@@ -61,7 +61,7 @@ contract LoanManager {
   function lend(uint _loanId) external payable {
     Loan storage loan = loans[_loanId];
 
-    require(loan.status == LoanStatus.created, "Loan is not in Created state");
+    require(loan.status == LoanStatus.Created, "Loan is not in Created state");
     require(msg.value == loan.amount, "Incorrect amount");
 
     loan.lender = payable(msg.sender);
@@ -69,7 +69,7 @@ contract LoanManager {
     loan.endDate = loan.startDate + (loan.duration * 1 days);
 
     loan.borrower.transfer(loan.amount);
-    loan.status = LoanStatus.active;
+    loan.status = LoanStatus.Active;
     
     emit LoanFunded(_loanId, msg.sender, loan.startDate, loan.endDate);
   }
@@ -77,7 +77,7 @@ contract LoanManager {
   function repayLoan(uint _loanId) external payable {
     Loan storage loan = loans[_loanId];
     
-    require(loan.status == LoanStatus.active, "Loan is not active");
+    require(loan.status == LoanStatus.Active, "Loan is not active");
     require(msg.sender == loan.borrower, "Only borrower can repay the loan");
 
     uint interest = LoanLibrary.calculateInterest(loan.amount, loan.interestRate, loan.duration);
@@ -90,7 +90,7 @@ contract LoanManager {
     
     require(msg.value >= totalAmountDue, "Incorrect repayment amount");
     loan.lender.transfer(totalAmountDue);
-    loan.status = LoanStatus.paid;
+    loan.status = LoanStatus.Paid;
     emit LoanRepaid(_loanId, totalAmountDue);
   }
 
@@ -98,9 +98,9 @@ contract LoanManager {
     Loan storage loan = loans[_loanId];
 
     require(msg.sender == loan.borrower, "Only borrower can cancel the loan");
-    require(loan.status == LoanStatus.created, "Loan can only be canceled if it is in the created state");
+    require(loan.status == LoanStatus.Created, "Loan can only be canceled if it is in the created state");
 
-    loan.status = LoanStatus.canceled;
+    loan.status = LoanStatus.Canceled;
     emit LoanCanceled(_loanId);
   }
 
